@@ -1,53 +1,42 @@
 pipeline {
     agent any
 
-    environment {
-        // Define your target server credentials ID configured in Jenkins
-        SSH_CRED_ID   = 'target-server-ssh-key'
-        SERVER_USER   = 'ubuntu'
-        SERVER_IP     = '192.168.1.50' // Replace with your actual target server IP
-    }
-
     stages {
         stage('Checkout Code') {
             steps {
-                // Pulls the latest code from your GitHub repo
+                // Pulls your code from GitHub to the local Jenkins workspace
                 checkout scm
             }
         }
 
-        stage('Transfer Deployment Script') {
+        stage('Install LAMP Stack') {
             steps {
-                echo "Copying deployment script to the target server..."
-                // Uses SSH Agent plugin to securely copy the script
-                sshagent([env.SSH_CRED_ID]) {
-                    sh "scp -o StrictHostKeyChecking=no deploy_lamp.sh ${SERVER_USER}@${SERVER_IP}:/tmp/deploy_lamp.sh"
-                }
+                echo "Installing LAMP stack locally..."
+                
+                // Running standard shell commands directly on the host machine
+                sh '''
+                    sudo apt-get update -y
+                    sudo apt-get install apache2 mysql-server php libapache2-mod-php php-mysql -y
+                '''
             }
         }
 
-        stage('Execute Deployment') {
+        stage('Start Services') {
             steps {
-                echo "Executing LAMP installation script on target server..."
-                sshagent([env.SSH_CRED_ID]) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} '
-                            chmod +x /tmp/deploy_lamp.sh && \
-                            sudo /tmp/deploy_lamp.sh && \
-                            rm /tmp/deploy_lamp.sh
-                        '
-                    """
-                }
+                echo "Starting and enabling Apache & MySQL..."
+                sh '''
+                    sudo systemctl start apache2
+                    sudo systemctl enable apache2
+                    sudo systemctl start mysql
+                    sudo systemctl enable mysql
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'LAMP Server successfully deployed and configured!'
-        }
-        failure {
-            echo 'Deployment failed. Check the Jenkins build logs for details.'
+            echo 'LAMP Server successfully installed locally!'
         }
     }
 }
