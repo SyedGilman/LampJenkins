@@ -4,8 +4,8 @@ pipeline {
     environment {
         // Define your target server credentials ID configured in Jenkins
         SSH_CRED_ID   = 'target-server-ssh-key'
-        SERVER_USER   = 'ubuntu'
-        SERVER_IP     = '192.168.1.50' // Replace with your actual target server IP
+        SERVER_USER   = 'root'
+        SERVER_IP     = '172.30.2.2' // Replace with your actual target server IP
     }
 
     stages {
